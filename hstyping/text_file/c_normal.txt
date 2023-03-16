@@ -1,0 +1,161 @@
+#include<stdio.h>
+#include<stdlib.h>
+typedef struct Heap 
+int arr[100001];
+int num;
+int(*comp)(int, int);
+Heap;
+int compMIN(int num1, int num2) 
+if (num1 < num2)
+return 1;
+else
+return -1;
+int compMAX(int num1, int num2) 
+if (num1 < num2)
+return -1;
+else
+return 1;
+void HeapInit(Heap* ph, int num) 
+ph->num = 0;
+if (num == 0)
+ph->comp = compMIN;
+else
+ph->comp = compMAX;
+int HIsEmpty(Heap* ph) 
+if (ph->num == 0)
+return 1;
+else
+return 0;
+void HInsert(Heap* ph, int data) 
+int idx = ++ph->num;
+while (idx != 1 && ph->comp(ph->arr[idx / 2], data)<0) 
+ph->arr[idx] = ph->arr[idx / 2];
+idx /= 2;
+ph->arr[idx] = data;
+int getPriorChild(Heap* ph, int idx) 
+if (idx * 2 > ph->num) 
+return 0;
+else if (idx * 2 == ph->num) 
+return idx * 2;
+else
+int HDelete(Heap* ph) 
+int parent = 1, child;
+int lastElem = ph->arr[ph->num--];
+int RData = ph->arr[1];
+while (child = getPriorChild(ph, parent)) 
+if (ph->comp(lastElem, ph->arr[child])>0)
+break;
+ph->arr[parent] = ph->arr[child];
+parent = child;
+ph->arr[parent] = lastElem;
+return RData;
+int main() 
+int N, n, mid, temp1, temp2;
+Heap maxHeap;
+Heap minHeap;
+HeapInit(&maxHeap,1);
+HeapInit(&minHeap,0);
+scanf("%d%*c", &N);
+for (int i = 1; i <= N; i++) 
+scanf("%d%*c", &n);
+if (i % 2 == 1) 
+HInsert(&maxHeap, n);
+else 
+HInsert(&minHeap, n);
+if (maxHeap.num && minHeap.num && maxHeap.arr[1] > minHeap.arr[1]) 
+temp1 = HDelete(&maxHeap);
+temp2 = HDelete(&minHeap);
+HInsert(&maxHeap, temp2);
+HInsert(&minHeap, temp1);
+printf("%d\n", maxHeap.arr[1]);
+return 0;
+#include<stdio.h>
+#include<math.h>
+#include<string.h>
+#include<stdlib.h>
+unsigned long str_to_hex(char* input, int idx) 
+unsigned long val = 0;
+char c;
+int num;
+for (int i = idx; i < idx + 8; i++) 
+c = input[i];
+if (c < 58)
+num = c - '0';
+else
+num = 10 + c - 'A';
+val += num*(unsigned long)pow(16, 7 - (i - idx));
+return val;
+char temp[33];
+output[0] = '\0';
+_ultoa(A, temp, 16);
+strcat(output, temp);
+_ultoa(B, temp, 16);
+strcat(output, temp);
+_ultoa(C, temp, 16);
+strcat(output, temp);
+_ultoa(D, temp, 16);
+strcat(output, temp);
+_ultoa(E, temp, 16);
+strcat(output, temp);
+unsigned long F(int t, unsigned long B, unsigned long C, unsigned long D) 
+if (t < 20) 
+return (B&C) | ((~B)&D);
+else if (t < 40) 
+return B^C^D;
+else if (t < 60) 
+return ((B&C) | (B&D) | (C&D));
+else 
+return B^C^D;
+unsigned long circShift(unsigned long num, int idx) 
+int b;
+for (int i = 0; i < idx; i++) 
+b = (num & 0x80000000) >> 31;
+num = num << 1;
+num += b;
+return num;
+int main() 
+char input[513];
+char output[161];
+unsigned long A, B, C, D, E;
+unsigned long initA, initB, initC, initD, initE;
+unsigned long K[4] =  0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6 ;
+unsigned long W[80];
+unsigned long t[16];
+unsigned long temp;
+initA = 0x67452301; 
+initB = 0xEFCDAB89;
+initC = 0x98BADCFE;
+initD = 0x10325476;
+initE = 0xC3D2E1F0;
+A = initA;
+B = initB;
+C = initC;
+D = initD;
+E = initE;
+printf("input 512 bit: \n");
+scanf("%s%*c", input);
+printf("\noutput round\n");
+for (int i = 0; i < 128; i += 8) 
+t[i/8] = str_to_hex(input, i);
+for (int i = 0; i < 80; i++) 
+if (i < 16)
+W[i] = t[i];
+else
+W[i] = circShift(W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16], 1);
+temp = circShift(A, 5) + F(i, B, C, D) + E + W[i] + K[i / 20];
+E = D;
+D = C;
+C = circShift(B, 30);
+B = A;
+A = temp;
+if (i == 19 || i == 39 || i == 59 || i == 79) 
+printf("Round%d --> ", (i + 1) / 20);
+printf("A: %X B: %X C: %X D: %X E: %X\n", A, B, C, D, E);
+A += initA;
+B += initB;
+C += initC;
+D += initD;
+E += initE;
+hex_to_str(output, A, B, C, D, E);
+printf("result: %s\n", _strupr(output));
+return 0;

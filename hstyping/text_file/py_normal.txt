@@ -1,0 +1,72 @@
+X = [[12, 7], [4, 5], [3, 8]]
+result = [[0, 0, 0], [0, 0, 0]]
+for i in range(len(X)) :
+for j in range(len(X[0])) :
+result[j][i] = X[i][j]
+for r in result :
+print(r)
+str1 = "Race"
+str2 = "Care"
+str1 = str1.lower()
+str2 = str2.lower()
+if (len(str1) == len(str2)) :
+sorted_str1 = sorted(str1)
+sorted_str2 = sorted(str2)
+if (sorted_str1 == sorted_str2) :
+print(str1 + " and " + str2 + " are anagram.")
+else:
+print(str1 + " and " + str2 + " are not anagram.")
+else:
+print(str1 + " and " + str2 + " are not anagram.")
+import requests
+from bs4 import BeautifulSoup
+response = requests.get(url)
+html = response.text
+soup = BeautifulSoup(html, 'html.parser')
+movies = soup.select('.dynamic-text-list > text-list > ul > li > a:first-child')
+for movie in movies :
+link = 'https://www.rottentomatoes.com' + movie.get('href')
+print("name: ".format(movie.text.strip()))
+print("URL: \n".format(link))
+import requests
+from bs4 import BeautifulSoup
+response = requests.get(url)
+html = response.text
+soup = BeautifulSoup(html, 'html.parser')
+quests = soup.select('.question-summary > .summary > h3 > a')
+for i, quest in enumerate(quests) :
+link = 'https://stackoverflow.com' + quest.get('href')
+print(i + 1)
+print("title: ".format(quest.text))
+print("URL: \n".format(link))
+header =  'User-agent' : 'Mozila/2.0' 
+response = requests.get("https://news.naver.com/", headers = header)
+html = response.text
+soup = BeautifulSoup(html, 'html.parser')
+titles = soup.select('.lnk_hdline_article')
+for title in titles :
+print(title.text.strip())
+import hashlib
+def hash_file(filename) :
+This function returns the SHA - 1 hash
+h = hashlib.sha1()
+with open(filename, 'rb') as file :
+chunk = 0
+while chunk != b'':
+chunk = file.read(1024)
+h.update(chunk)
+return h.hexdigest()
+message = hash_file("track1.mp3")
+print(message)
+index = int(input("Enter the index: "))
+try :
+my_list = [1, 2, 3, 4]
+print(my_list[index])
+except :
+print("Please enter a valid index.")
+class Dog :
+def __init__(self, name, age) :
+self.name = name
+self.age = age
+def bark(self) :
+print(f"woof-woof. I'm self.name")

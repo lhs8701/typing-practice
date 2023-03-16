@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cc -o program.o main.c -lncurses -lrt
+./program.o

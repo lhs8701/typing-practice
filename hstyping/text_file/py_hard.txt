@@ -1,0 +1,168 @@
+from pkg_resources import get_distribution
+from pkgutil import extend_path
+from typing import List, Tuple, Type
+from simpy.core import Environment
+from simpy.rt import RealtimeEnvironment
+from simpy.exceptions import SimPyException, Interrupt
+from simpy.events import Event, Timeout, Process, AllOf, AnyOf
+from simpy.resources.resource import(
+Resource, PriorityResource, PreemptiveResource)
+from simpy.resources.container import Container
+from simpy.resources.store import(
+Store, PriorityItem, PriorityStore, FilterStore)
+def _compile_toc(
+entries: Tuple[Tuple[str, Tuple[Type, ...]], ...],
+section_marker : str = '=',
+)->str:
+toc = ''
+for section, objs in entries :
+toc += '\n\n'
+toc += f'section\n'
+toc += f'section_marker * len(section)\n\n'
+toc += '.. autosummary::\n\n'
+for obj in objs :
+toc += f'    ~obj.__module__.obj.__name__\n'
+return toc
+if __doc__:
+__doc__ = __doc__.format(toc = _compile_toc(_toc))
+assert set(__all__) == obj.__name__ for _, objs in _toc for obj in objs
+__path__: List[str] = list(extend_path(__path__, __name__))
+__version__ : str = get_distribution('simpy').version
+import random
+import pytest
+import simpy
+@pytest.mark.benchmark(group = 'frequent')
+def test_event_init(env, benchmark) :
+benchmark(env.event)
+@pytest.mark.benchmark(group = 'frequent')
+def test_timeout_init(env, benchmark) :
+benchmark(env.timeout, 1)
+@pytest.mark.benchmark(group = 'frequent')
+def test_process_init(env, benchmark) :
+def g() :
+yield env.timeout(1)
+benchmark(env.process, g())
+@pytest.mark.benchmark(group = 'frequent')
+def test_environment_step(env, benchmark) :
+def g(env) :
+while True :
+yield env.timeout(1)
+env.process(g(env))
+benchmark(env.step)
+@pytest.mark.benchmark(group = 'targeted')
+def test_condition_events(env, benchmark) :
+def cond_proc(env) :
+yield(env.timeout(0) & (env.timeout(2) | env.timeout(1)))
+def sim() :
+for _ in range(20) :
+env.process(cond_proc(env))
+env.run()
+benchmark(sim)
+@pytest.mark.benchmark(group = 'targeted')
+def test_condition_wait(env, benchmark) :
+def cond_proc(env) :
+yield env.all_of(env.timeout(i) for i in range(10))
+def sim() :
+for _ in range(10) :
+env.process(cond_proc(env))
+env.run()
+benchmark(sim)
+@pytest.mark.benchmark(group = 'targeted')
+def test_wait_for_proc(env, benchmark) :
+r = random.Random(1234)
+def child(env) :
+yield env.timeout(r.randint(1, 1000))
+def parent(env) :
+children = [env.process(child(env)) for _ in range(10)]
+for proc in children :
+if not proc.triggered :
+yield proc
+def sim(env) :
+for _ in range(5) :
+env.process(parent(env))
+env.run()
+import re
+import pytest
+def test_succeed(env) :
+def child(env, event) :
+value = yield event
+assert value == 'ohai'
+assert env.now == 5
+def parent(env) :
+event = env.event()
+env.process(child(env, event))
+yield env.timeout(5)
+event.succeed('ohai')
+env.process(parent(env))
+env.run()
+def test_fail(env) :
+def child(env, event) :
+try :
+yield event
+pytest.fail('Should not get here.')
+except ValueError as err :
+assert err.args[0] == 'ohai'
+assert env.now == 5
+def parent(env) :
+event = env.event()
+env.process(child(env, event))
+yield env.timeout(5)
+event.fail(ValueError('ohai'))
+env.process(parent(env))
+env.run()
+def test_names(env) :
+def pem() :
+return
+yield
+assert re.match(r'<Event\(\) object at 0x.*>', str(env.event()))
+assert re.match(r'<Timeout\(1\) object at 0x.*>', str(env.timeout(1)))
+assert re.match(r'<Timeout\(1, value=2\) object at 0x.*>',
+str(env.timeout(1, value = 2)))
+assert re.match(r'<Condition\(all_events, \(<Event\(\) object at 0x.*>, '
+r'<Event\(\) object at 0x.*>\)\) object at 0x.*>',
+str(env.event() & env.event()))
+assert re.match(r'<Process\(pem\) object at 0x.*>',
+str(env.process(pem())))
+def test_value(env) :
+event = env.timeout(0, 'I am the value')
+env.run()
+assert event.value == 'I am the value'
+def test_unavailable_value(env) :
+event = env.event()
+try :
+event.value
+assert False, 'Expected an exception'
+except AttributeError as e :
+assert e.args[0].endswith('is not yet available')
+def test_triggered(env) :
+def pem(env, event) :
+value = yield event
+return value
+event = env.event()
+event.succeed('i was already done')
+result = env.run(env.process(pem(env, event)))
+assert result == 'i was already done'
+def test_callback_modification(env) :
+def callback(event) :
+assert event.callbacks is None
+event = env.event()
+event.callbacks.append(callback)
+event.succeed()
+env.run(until = event)
+def test_condition_callback_removal(env) :
+a, b = env.event(), env.event()
+a.succeed()
+env.run(until = a | b)
+assert not a.callbacks and not b.callbacks
+def test_condition_nested_callback_removal(env) :
+a, b, c = env.event(), env.event(), env.event()
+b_and_c = b & c
+a_or_b_and_c = a | b_and_c
+a.succeed()
+env.run(until = a_or_b_and_c)
+assert not a.callbacks
+assert not b.callbacks
+assert not c.callbacks
+for cb in b_and_c.callbacks:
+assert cb.__name__ != '_check'
+assert not a_or_b_and_c.callbacks

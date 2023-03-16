@@ -1,0 +1,164 @@
+import java.util.Scanner;
+public class ex1 
+public static void main(String[] args) 
+Scanner sc = new Scanner(System.in);
+int[] lowerAlpha = new int[26];
+int[] upperAlpha = new int[26];
+while (true) 
+String sen = sc.nextLine();
+if (sen.isEmpty())
+break;
+char[] input = sen.toCharArray();
+for (int i = 0; i<input.length; i++) 
+if (Character.isLetter(input[i])) 
+if (input[i] - 'a' >= 0)
+lowerAlpha[input[i] - 'a']++;
+else
+upperAlpha[input[i] - 'A']++;
+sc.close();
+System.out.println("Alphabet Count");
+for (int i = 0; i<26; i++) 
+System.out.printf("%c:%4d, %c:%4d\n", 'a'+i, lowerAlpha[i], 'A'+i, upperAlpha[i]);
+public class ex2 
+public static void main(String[] args) 
+RollingDie die1 = new RollingDie("die1", 6);
+RollingDie die2 = new RollingDie("die2", 6);
+System.out.print(die1.toString());
+System.out.print(die2.toString());
+System.out.printf("%5s %5s \n", die1.getName(), die2.getName());
+for (int i = 0; i<10; i++) 
+die1.roll();
+die2.roll();
+System.out.printf("%4d,%4d ", die1.getFaceNumber(), die2.getFaceNumber());
+if (die1.compareTo(die2)>0) 
+System.out.printf("(%s > %s)", die1.getName(), die2.getName());
+else if (die1.compareTo(die2) == 0) 
+System.out.printf("(%s = %s)", die1.getName(), die2.getName());
+else 
+System.out.printf("(%s < %s)", die1.getName(), die2.getName());
+System.out.printf("\n");
+public class Employee 
+int age;
+int salary;
+String position;
+String name;
+public void setAge(int age) 
+this.age = age;
+public void setPosition(String position) 
+this.position = position;
+public void setName(String firstname, String lastname) 
+this.name = firstname + " " + lastname;
+public void setSalary(int salary) 
+this.salary = salary;
+public void printInfo() 
+System.out.printf("Name: %s\n", name);
+System.out.printf("Age: %d\n", age);
+System.out.printf("Position: %s\n", position);
+System.out.printf("Salary (Won): %d\n", salary);
+public void printName() 
+System.out.println(name);
+public void printSalary() 
+System.out.println(salary);
+public void printPosition() 
+System.out.println(position);
+package week5;
+import java.util.Scanner;
+public class EmployeeTest 
+public static void main(String[] args) 
+Scanner sc = new Scanner(System.in);
+Employee[] employee = new Employee[4];
+for (int i = 0; i<4; i++)
+employee[i] = new Employee();
+employee[0].setAge(25);
+employee[0].setName("John", "Smith");
+employee[0].setPosition("Senior Software Engineer");
+employee[0].setSalary(30000);
+employee[1].setAge(24);
+employee[1].setName("Kim", "Young");
+employee[1].setPosition("Junior Software Engineer");
+employee[1].setSalary(25000);
+employee[2].setAge(25);
+employee[2].setName("Michael", "Kevin");
+employee[2].setPosition("Senior Researcher");
+employee[2].setSalary(30000);
+employee[3].setAge(24);
+employee[3].setName("Marry", "Anne");
+employee[3].setPosition("Junior Researcher");
+employee[3].setSalary(25000);
+while (true) 
+System.out.println("1. Display all positions");
+System.out.println("2. Display all salaries");
+System.out.println("3. Display all employees' name");
+System.out.println("4. Display all information");
+System.out.println("0. Quit");
+System.out.print("->");
+int input = Integer.parseInt(sc.nextLine());
+if (input == 0) 
+System.out.println("Bye!");
+break;
+switch (input) 
+case 1:
+for (int i = 0; i<4; i++)
+employee[i].printPosition();
+break;
+case 2:
+for (int i = 0; i<4; i++)
+employee[i].printSalary();
+break;
+case 3:
+for (int i = 0; i<4; i++)
+employee[i].printName();
+break;
+case 4:
+for (int i = 0; i<4; i++)
+employee[i].printInfo();
+break;
+package week5_;
+import java.util.Scanner;
+public class StringApp 
+public static void main(String[] args) 
+Scanner sc = new Scanner(System.in);
+StringStack stack = new StringStack();
+System.out.print("Input Stack size >> ");
+int capacity = Integer.parseInt(sc.nextLine());
+stack.setCapacity(capacity);
+while (true) 
+System.out.print("Input String >> ");
+String line = sc.nextLine();
+if (line.equals("quit")) 
+System.out.print("Print contents of the stack: ");
+while (!stack.SIsEmpty()) 
+System.out.print(stack.pop() + " ");
+break;
+if (stack.length() < stack.capacity()) 
+stack.push(line);
+else 
+System.out.println("Stack is full.");
+import java.util.Scanner;
+class BalanceInsufficientException extends Exception 
+public BalanceInsufficientException() 
+public BalanceInsufficientException(String message) 
+super(message);
+class Account 
+private long balance;
+public Account() 
+public long getBalance() 
+return balance;
+public void deposit(int money) 
+balance += money;
+public void withdraw(int money) throws BalanceInsufficientException 
+if (balance < money) 
+throw new BalanceInsufficientException("error : " + (money - balance) + "amount");
+balance -= money;
+public class sample 
+public static void main(String[] args) 
+Scanner sc = new Scanner(System.in);
+Account account = new Account();
+account.deposit(10000);
+System.out.println("value : " + account.getBalance());
+try 
+account.withdraw(30000);
+catch (BalanceInsufficientException e) 
+String message = e.getMessage();
+System.out.println(message);
+System.out.println();

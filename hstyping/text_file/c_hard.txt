@@ -1,0 +1,391 @@
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+#include<ncurses.h>
+#include<signal.h>
+#include<fcntl.h>
+#include<unistd.h>
+#include<sys/time.h>
+#include<sys/types.h>
+#define UPPEREDGE 0
+#define LOWEREDGE 30
+int isInitScreen;
+int isMain;
+int isGameScreen;
+int isoutpage;
+int isChild;
+int done;
+int donePro;
+int outFlag;
+int progExit;
+char title[30] = "HANSOL TYPING TRAINING";
+char name[20];
+char* langList[2] =  "C", "PYTHON" ;
+char* timerList[3] =  "1","3","5" ;
+char* diffList[2] =  "NORMAL", "HARD" ;
+char lang[20];
+char timer[20];
+char diff[20];
+FILE* fp[4];
+int setticker(int n) 
+struct itimerval new_timeset;
+long    n_sec, n_usecs;
+n_sec = n / 1000;/* int part*/
+n_usecs = (n % 1000) * 1000L; 
+new_timeset.it_interval.tv_sec = n_sec;
+new_timeset.it_interval.tv_usec = n_usecs;  
+new_timeset.it_value.tv_sec = n_sec;/* store this */
+new_timeset.it_value.tv_usec = n_usecs;/* and this */
+return setitimer(ITIMER_REAL, &new_timeset, NULL);
+void displayBorder() 
+for (int i = 0; i<COLS; i++) 
+mvaddch(UPPEREDGE, i, '=');
+mvaddch(LOWEREDGE, i, '=');
+void enable_kbd_signals() 
+int fd;
+fcntl(0, F_SETOWN, getpid());
+fd = fcntl(0, F_GETFL);
+fcntl(0, F_SETFL, (fd | O_ASYNC));
+void on_input(int signum) 
+int c = getch();
+if ((isoutpage || isGameScreen || isChild) && c == 'n') 
+donePro = 1;
+outFlag = 0;
+if ((isoutpage || isGameScreen || isChild) && c == 'y') 
+donePro = 1;
+outFlag = 1;
+void wrapup() 
+endwin();
+for (int i = 0; i<9; i++)
+fclose(fp[i]);
+void outPage(int signum) 
+WINDOW* w;
+int width = 23, height = 1;
+int c;
+signal(SIGIO, on_input);
+enable_kbd_signals();
+isoutpage = 1;
+w = newwin(height, width, 1, 70);
+overwrite(w, curscr);
+wattron(w, COLOR_PAIR(2));
+mvwprintw(w, 0, 1, " Sure to Exit? (y/n)");
+wrefresh(w);
+while (!donePro)
+pause();
+if (outFlag) 
+wrapup();
+exit(1);
+donePro = 0;
+isoutpage = 0;
+werase(w);
+wrefresh(w);
+signal(SIGIO, SIG_IGN);
+void fetchFile() 
+fp[0] = fopen("c_easy.txt", "r");
+fp[1] = fopen("c_normal.txt", "r");
+fp[2] = fopen("c_hard.txt", "r");
+fp[3] = fopen("java_easy.txt", "r");
+fp[4] = fopen("java_normal.txt", "r");
+fp[5] = fopen("java_hard.txt", "r");
+fp[6] = fopen("py_easy.txt", "r");
+fp[7] = fopen("py_normal.txt", "r");
+fp[8] = fopen("py_hard.txt", "r");
+void setup() 
+struct sigaction handler;
+handler.sa_handler = outPage;
+handler.sa_flags = SA_RESTART;
+fetchFile();
+sigaction(SIGINT, &handler, NULL);
+initscr();
+start_color();
+init_pair(1, COLOR_WHITE, COLOR_BLACK);
+init_pair(2, COLOR_YELLOW, COLOR_BLACK);
+init_pair(3, COLOR_BLACK, COLOR_WHITE);
+init_pair(4, COLOR_RED, COLOR_BLACK);
+init_pair(5, COLOR_CYAN, COLOR_BLACK);
+init_pair(6, COLOR_BLUE, COLOR_BLACK);
+bkgd(COLOR_PAIR(1));
+cbreak();
+isInitScreen = 1;
+isMain = 0;
+isGameScreen = 0;
+void blinkstr1(int signum) 
+static int flag = 1;
+char anyKey[50] = "  Press Any Keys to Start Program ";
+int messLen = strlen(anyKey);
+if (flag) 
+attron(A_STANDOUT);
+mvaddstr(LOWEREDGE / 2 + 2, COLS / 2 - messLen / 2, anyKey);
+attroff(A_STANDOUT);
+else 
+mvaddstr(LOWEREDGE / 2 + 2, COLS / 2 - messLen / 2, blank);
+refresh();
+flag = !flag;
+void blinkstr2(int signum) 
+static int flag = 1;
+char anyKey[50] = "  Press Any Keys to Start Practice  ";
+int messLen = strlen(anyKey);
+int num = 6, timeLine = num + 14;
+if (flag) 
+attron(A_STANDOUT);
+mvaddstr(timeLine + 6, COLS / 2 - strlen(anyKey) / 2, anyKey);
+attroff(A_STANDOUT);
+else 
+mvaddstr(timeLine + 6, COLS / 2 - strlen(anyKey) / 2, blank);
+refresh();
+flag = !flag;
+void blinkstr3(int signum) 
+static int flag = 1;
+char anyKey[50] = "  Press Any Keys to Exit Program  ";
+int messLen = strlen(anyKey);
+int num = 6, timeLine = num + 14;
+if (flag) 
+attron(A_STANDOUT);
+mvaddstr(25, COLS / 2 - strlen(anyKey) / 2, anyKey);
+attroff(A_STANDOUT);
+else 
+mvaddstr(25, COLS / 2 - strlen(anyKey) / 2, blank);
+refresh();
+flag = !flag;
+void enterMain() 
+int c, out;
+char err[30] = "Wrong input";
+char langMenu[50] = "/*  (0) C   (1) PYTHON  */";
+char diffMenu[50] = "/*  (0) NORMAL   (1) HARD  */";
+char timeMenu[50] = "/*  (0) 1Min   (1) 3Min   (2) 5Min  */";
+int num = 6;
+clear();
+isMain = 1;
+displayBorder();
+mvaddstr(1, 0, "  Main  |");
+mvaddstr(1, COLS / 2 - strlen(title) / 2, title);
+for (int i = 0; i<COLS; i++)
+mvaddch(2, i, '-');
+mvaddstr(nameLine, 0, "User Name: ");
+scanw("%s", name);
+attron(COLOR_PAIR(5));
+printw(">> Hi, %s !", name);
+attron(COLOR_PAIR(1));
+out = 0;
+attron(COLOR_PAIR(6));
+mvaddstr(langLine, 0, langMenu);
+attron(COLOR_PAIR(1));
+mvaddstr(langLine + 1, 0, "Choose Your Programming Language [0~1]: ");
+while (!out) 
+scanw("%s%*c", lang);
+mvaddstr(langLine + 2, 0, blank);
+switch (*lang) 
+case '0':
+out = 1;
+break;
+case '1':
+out = 1;
+break;
+default:
+attron(COLOR_PAIR(4));
+mvaddstr(langLine + 2, strlen("Choose Your Programming Language [0~1]: "), err);
+attron(COLOR_PAIR(1));
+mvaddstr(langLine + 1, strlen("Choose Your Programming Language [0~1]: "), blank);
+move(langLine + 1, strlen("Choose Your Programming Language [0~1]: "));
+break;
+move(langLine + 2, 0);
+attron(COLOR_PAIR(5));
+printw(">> You chose '%s' !", langList[*lang - '0']);
+attron(COLOR_PAIR(1));
+out = 0;
+attron(COLOR_PAIR(6));
+mvaddstr(diffLine, 0, diffMenu);
+attron(COLOR_PAIR(1));
+mvaddstr(diffLine + 1, 0, "Choose difficulty [0~1]: ");
+while (!out) 
+scanw("%s%*c", diff);
+mvaddstr(diffLine + 2, 0, blank);
+switch (*diff) 
+case '0':
+out = 1;
+break;
+case '1':
+out = 1;
+break;
+default:
+attron(COLOR_PAIR(4));
+mvaddstr(diffLine + 2, strlen("Choose Difficulty [0~1]: "), err);
+attron(COLOR_PAIR(1));
+mvaddstr(diffLine + 1, strlen("Choose Difficulty [0~1]: "), blank);
+move(diffLine + 1, strlen("Choose Difficulty [0~1]: "));
+break;
+move(diffLine + 2, 0);
+attron(COLOR_PAIR(5));
+printw(">> You chose '%s' mode !", diffList[(*diff - '0')]);
+attron(COLOR_PAIR(1));
+out = 0;
+attron(COLOR_PAIR(6));
+mvaddstr(timeLine, 0, timeMenu);
+attron(COLOR_PAIR(1));
+mvaddstr(timeLine + 1, 0, "Choose Timer [0~2]: ");
+while (!out) 
+scanw("%s%*c", timer);
+mvaddstr(timeLine + 2, 0, blank);
+switch (*timer) 
+case '0':
+out = 1;
+break;
+case '1':
+out = 1;
+break;
+case '2':
+out = 1;
+break;
+default:
+attron(COLOR_PAIR(4));
+mvaddstr(timeLine + 2, strlen("Choose Timer [0~2]: "), err);
+attron(COLOR_PAIR(1));
+mvaddstr(timeLine + 1, strlen("Choose Timer [0~2]: "), blank);
+move(timeLine + 1, strlen("Choose Timer [0~2]: "));
+break;
+move(timeLine + 2, 0);
+attron(COLOR_PAIR(5));
+printw(">> You chose '%s minute' !", timerList[(*timer - '0')]);
+attron(COLOR_PAIR(1));
+curs_set(0);
+signal(SIGALRM, blinkstr2);
+setticker(800);
+/*
+attron(A_STANDOUT);
+mvaddstr(timeLine+6, COLS/2 - strlen(anyKey)/2, anyKey);
+attroff(A_STANDOUT);
+*/
+isMain = 0;
+isGameScreen = 1;
+getch();
+curs_set(1);
+int nextIdx(int idx) 
+if (idx == 4)
+return 0;
+else
+return idx + 1;
+void child()
+sigset_t block;
+int n = 5, col = 25;
+int fileNum = (*lang - '0') * 2 + (*diff - '0');
+char input[100];
+char gap[5] = "=> ";
+char* buf[5];
+int start = 0, end = 4;
+int hdcol1 = col + 1, hdcol2 = hdcol1 + 18, hdcol3 = hdcol2 + 20;
+int score1 = 512, score2 = 489, score3 = 100; 
+char temp[10];
+isChild = 1;
+clear();
+displayBorder();
+mvaddstr(1, 0, "  Practice  |  ");
+mvaddstr(1, COLS / 2 - strlen(title) / 2, title);
+for (int i = 0; i<COLS; i++)
+mvaddch(2, i, '-');
+fscanf(fp[fileNum], "%s", buf[0]);
+fscanf(fp[fileNum], "%s", buf[1]);
+fscanf(fp[fileNum], "%s", buf[2]);
+fscanf(fp[fileNum], "%s", buf[3]);
+while(1)
+end = nextIdx(end);
+fscanf(fp[fileNum], "%s", buf[end]);
+/*   mvaddstr(n+1, col, "   A   B   C   ");
+mvaddstr(n+2, col, "   a   b   c   "); */
+mvaddstr(n + 1, hdcol1, "Max Typing rate | ");
+mvaddstr(n + 1, hdcol2, "Average Typing rate");
+mvaddstr(n + 1, hdcol3, "| Accuracy");
+sprintf(temp, "%d", score1);
+mvaddstr(n + 2, hdcol1 + 6, temp);
+sprintf(temp, "%d", score2);
+mvaddstr(n + 2, hdcol2 + 8, temp);
+sprintf(temp, "%d", score3);
+mvaddstr(n + 2, hdcol3 + 4, temp);
+mvaddch(n + 2, hdcol3 + 4 + strlen(temp), '%');
+mvaddch(n + 2, hdcol1 + strlen("Max Typing rate "), '|');
+mvaddch(n + 2, hdcol2 + strlen("Average Typing rate "), '|');
+mvaddstr(n + 6, col, div);
+mvaddstr(sen0, col + strlen(gap), "pass sentense ~~~~~~~~~~~~~");
+mvaddstr(n + 8, col, div);
+mvaddstr(sen1, col + strlen(gap), "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+mvaddstr(n + 12, col, gap);
+mvaddstr(n + 14, col, div);
+mvaddstr(sen2, col + strlen(gap), "sentense1");
+mvaddstr(sen3, col + strlen(gap), "sentense2");
+mvaddstr(sen4, col + strlen(gap), "sentense3");
+mvaddstr(sen5, col + strlen(gap), "sentense4");
+mvaddstr(n + 21, col, div);
+refresh();
+move(n + 12, col + strlen(gap));
+scanw("%s%*c", input);
+getch();
+exit(0);
+void gameStart() 
+int pid;
+int col = 37, row = 12;
+int status, exitVal;
+clear();
+isChild = 0;
+signal(SIGALRM, SIG_IGN);
+displayBorder();
+mvaddstr(1, 0, "  Result  |");
+mvaddstr(1, COLS / 2 - strlen(title) / 2, title);
+for (int i = 0; i<COLS; i++)
+mvaddch(2, i, '-');
+pid = fork();
+if (pid == 0) 
+child();
+else 
+signal(SIGINT, SIG_IGN);
+wait(&status);
+exitVal = status >> 8;
+if (exitVal) 
+isMain = 1;
+isGameScreen = 0;
+signal(SIGINT, outPage);
+return;
+attron(COLOR_PAIR(5));
+mvaddstr(row, col, name);
+attron(COLOR_PAIR(1));
+mvaddstr(row, col + strlen(name), "'s practice result !");
+mvaddstr(row + 1, col, "-----------------------------");
+mvaddstr(row + 3, col, "Max Typing Speed: 500");
+mvaddstr(row + 5, col, "Average Typing Speed: 456");
+mvaddstr(row + 7, col, "Accuracy: 100%");
+refresh();
+curs_set(0);
+signal(SIGALRM, blinkstr3);
+setticker(800);
+getch();
+curs_set(1);
+progExit = 1;
+void start() 
+char title[30] = "HANSOL TYPING TRAINING";
+char anyKey[50] = "  Press Any Keys to Start Program ";
+int c;
+int titleLen = strlen(title);
+int messLen = strlen(anyKey);
+clear();
+curs_set(0);
+displayBorder();
+attron(A_BOLD | A_UNDERLINE);
+mvaddstr(LOWEREDGE / 2 - 1, COLS / 2 - titleLen / 2, title);
+attroff(A_UNDERLINE);
+signal(SIGALRM, blinkstr1);
+setticker(800);
+getch();
+isInitScreen = 0;
+isMain = 1;
+done = 0;
+curs_set(1);
+signal(SIGALRM, SIG_IGN);
+int main() 
+setup();
+while (!progExit) 
+if (isInitScreen)
+start();
+if (isMain)
+enterMain();
+if (isGameScreen)
+gameStart();
+wrapup();
+return 0;
